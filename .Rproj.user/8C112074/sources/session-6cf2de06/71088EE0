@@ -3,7 +3,7 @@
     "path": "~/Desktop/NBA Shiny/app.R",
     "project_path": "app.R",
     "type": "r_source",
-    "hash": "2818120880",
+    "hash": "2888771575",
     "contents": "",
     "dirty": false,
     "created": 1727994350258.0,
@@ -12,15 +12,15 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "28,12",
-        "scrollLine": "2"
+        "cursorPosition": "40,68",
+        "scrollLine": "24"
     },
     "folds": "",
-    "lastKnownWriteTime": 1727995126,
+    "lastKnownWriteTime": 1727995805,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1727995126833,
+    "last_content_update": 1727995805289,
     "read_only": false,
     "read_only_alternatives": []
 }
