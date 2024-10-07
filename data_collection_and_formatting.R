@@ -15,7 +15,7 @@ required_columns <- c("Player", "Rk", "Pos", "Age", "Tm", "G", "GS", "MP", "FG",
                       "%C3", "C3%")
 
 # Loop through each year from 1997 to 2023
-for (year in 1997:2023) {
+for (year in 1997:2024) {
   
   # Dynamic URLs for each year
   url_totals <- paste0("https://www.basketball-reference.com/leagues/NBA_", year, "_totals.html")
