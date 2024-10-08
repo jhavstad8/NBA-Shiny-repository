@@ -74,7 +74,7 @@ server <- function(input, output) {
   
   # Reactive expression to read the selected season data
   nba_data <- reactive({
-    file_path <- paste0("1997-2024 NBA Season Data/", input$season, ".csv")
+    file_path <- paste0("1997-2024 NBA Player Data/", input$season, ".csv")
     
     # Check if the file exists before reading
     if (!file.exists(file_path)) {

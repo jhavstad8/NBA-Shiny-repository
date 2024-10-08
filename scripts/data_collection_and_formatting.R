@@ -14,8 +14,8 @@ required_columns <- c("Player", "Rk", "Pos", "Age", "Tm", "G", "GS", "MP", "FG",
                       "0-3%", "3-10%", "10-16%", "16-3P%", "2ast", "3ast", "%Dunks", "#Dunks", 
                       "%C3", "C3%")
 
-# Loop through each year from 1997 to 2023
-for (year in 1997:2024) {
+# Loop through each year from 1997 to 2024
+for (year in 2024:2024) {
   
   # Dynamic URLs for each year
   url_totals <- paste0("https://www.basketball-reference.com/leagues/NBA_", year, "_totals.html")
@@ -24,18 +24,19 @@ for (year in 1997:2024) {
   
   # Read and parse HTML tables
   wp_totals <- read_html(url_totals)
-  Sys.sleep(5)  # Wait for 5 seconds before making the next request
+  Sys.sleep(5)
   wp_advanced <- read_html(url_advanced)
-  Sys.sleep(5)  # Wait for 5 seconds before making the next request
+  Sys.sleep(5)
   wp_shooting <- read_html(url_shooting)
-  Sys.sleep(5)  # Wait for 5 seconds before continuing
+  Sys.sleep(5)
   
   # Read tables into dataframes
   totals <- html_table(html_nodes(wp_totals, "#totals_stats"), fill = TRUE)[[1]]
   advanced <- html_table(html_nodes(wp_advanced, "#advanced_stats"), fill = TRUE)[[1]]
   shooting <- html_table(html_nodes(wp_shooting, "#shooting_stats"), fill = TRUE)[[1]]
   
-  # Clean up shooting stats
+  # Fix column names and clean up shooting data frame
+  colnames(shooting)[1:9] <- c("Rk", "Player", "Pos", "Age", "Tm", "G", "MP", "FG%", "Dist.")
   colnames(shooting) <- as.character(unlist(shooting[1,]))
   shooting <- shooting[-1,]
   colnames(shooting)[11:16] <- paste0("%", colnames(shooting)[11:16])
@@ -47,14 +48,32 @@ for (year in 1997:2024) {
   del <- c(10, 17, 24, 27, 30, 33, 34, 35)
   shooting <- select(shooting, -all_of(del))
   
+  # Handle unnamed columns in totals, advanced, and shooting data
+  colnames(totals)[colnames(totals) == ""] <- paste0("unnamed_", seq_along(colnames(totals)[colnames(totals) == ""]))
+  colnames(advanced)[colnames(advanced) == ""] <- paste0("unnamed_", seq_along(colnames(advanced)[colnames(advanced) == ""]))
+  colnames(shooting)[colnames(shooting) == ""] <- paste0("unnamed_", seq_along(colnames(shooting)[colnames(shooting) == ""]))
+  
+  
+  # Remove * symbols from Player names
+  totals$Player <- gsub("\\*", "", totals$Player)
+  advanced$Player <- gsub("\\*", "", advanced$Player)
+  shooting$Player <- gsub("\\*", "", shooting$Player)
+  
   # Remove player duplicates
   totals <- totals[!duplicated(totals$Player), ]
   advanced <- advanced[!duplicated(advanced$Player), ]
   shooting <- shooting[!duplicated(shooting$Player), ]
   
-  # Merge datasets while adding suffixes to avoid duplicate column names
-  nba_data <- merge(totals, advanced, by = 'Player', suffixes = c(".totals", ".adv")) # Suffixes added here
-  nba_data <- merge(nba_data, shooting, by = 'Player', suffixes = c("", ".shoot")) # Merging shooting stats
+  # Rename overlapping columns in advanced and shooting dataframes
+  advanced <- advanced %>% rename_with(~ paste0(., "_adv"), -Player)
+  shooting <- shooting %>% rename_with(~ paste0(., "_shoot"), -Player)
+  
+  # Merge datasets using full join to keep all players
+  nba_data <- full_join(totals, advanced, by = 'Player')
+  nba_data <- full_join(nba_data, shooting, by = 'Player')
+  
+  # Remove the suffixes after merging
+  colnames(nba_data) <- gsub("_adv|_shoot", "", colnames(nba_data))
   
   # Ensure only required columns are kept
   nba_data_cleaned <- nba_data %>% select(all_of(required_columns))
@@ -62,6 +81,15 @@ for (year in 1997:2024) {
   # Convert columns to numeric where appropriate
   nba_data_cleaned <- mutate_at(nba_data_cleaned, vars(c(4, 6:66)), as.numeric)
   
-  # Save the final dataset as a CSV file for the given year
-  write.csv(nba_data_cleaned, paste0("NBA", year, ".csv"), row.names = FALSE)
+  # Check for any missing players
+  missing_players <- nba_data_cleaned %>% filter(is.na(Player))
+  if (nrow(missing_players) > 0) {
+    cat("Missing players in year", year, ":", nrow(missing_players), "\n")
+  }
+  
+  # Create the directory if it doesn't exist
+  dir.create("1997-2024 NBA Player Data", showWarnings = FALSE)
+  
+  # Save the final dataset as a CSV file in the specified folder
+  write.csv(nba_data_cleaned, paste0("1997-2024 NBA Player Data/NBA", year, ".csv"), row.names = FALSE)
 }
