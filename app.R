@@ -118,6 +118,15 @@ server <- function(input, output) {
     # Select the chosen statistic
     chosen_stat <- input$statistic
     
+    # Get the corresponding readable statistic name
+    stat_name <- switch(input$statistic,
+                        "PTS_per_game" = "Points Per Game",
+                        "AST_per_game" = "Assists Per Game",
+                        "TRB_per_game" = "Rebounds Per Game",
+                        "STL_per_game" = "Steals Per Game",
+                        "BLK_per_game" = "Blocks Per Game",
+                        "TOV_per_game" = "Turnovers Per Game")
+    
     # Get the current data and filter based on minimum games played
     filtered_data <- calculated_data()[calculated_data()$G >= input$minGames, ]
     
@@ -140,8 +149,11 @@ server <- function(input, output) {
     # Select only relevant columns to display (Player, Games Played, and the chosen statistic)
     top_players <- top_players[, c("Player", "G", chosen_stat, "Pos", "Tm"), drop = FALSE]
     
-    # Rename the chosen_stat column to make it more readable in the table output
-    colnames(top_players)[3] <- "Per Game"
+    # Rename columns to make them more readable in the table output
+    colnames(top_players)[2] <- "Games"
+    colnames(top_players)[3] <- stat_name # Use the readable statistic name
+    colnames(top_players)[4] <- "Position"
+    colnames(top_players)[5] <- "Team"
     
     # Get the number of players to display from the user input
     num_players <- input$numPlayers
@@ -157,4 +169,4 @@ server <- function(input, output) {
 }
 
 # Run the application
-shinyApp(ui = ui, server = server)  # This should be at the top level of your script
+shinyApp(ui = ui, server = server)  
