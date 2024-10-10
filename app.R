@@ -6,9 +6,11 @@
 #
 #    https://shiny.posit.co/
 #
-
+# Necessary Libraries
 library(shiny)
+library(tidyverse)
 library(ggplot2)
+library(plotly)
 
 # Specify the directory containing the data files
 data_directory <- "/Users/joshhavstad/Desktop/NBA Shiny/1997-2024 NBA Player Data"
@@ -95,7 +97,7 @@ ui <- fluidPage(
                            selected = "PTS_per_game"),  # Default is Points Per Game
              ),
 
-             plotOutput("timeSeriesPlot")  # Output for the graph
+             plotlyOutput("timeSeriesPlot")  # Output for the graph
     )
   )
 )
@@ -245,7 +247,7 @@ server <- function(input, output) {
   
   
   # Render the time series plot
-  output$timeSeriesPlot <- renderPlot({
+  output$timeSeriesPlot <- renderPlotly({
     player_stats <- combined_player_data()
     
     # If there is no data, return NULL
@@ -263,13 +265,16 @@ server <- function(input, output) {
                         "TOV_per_game" = "Turnovers Per Game")
     
     # Create the time series plot
-    ggplot(player_stats, aes(x = Season, y = PerGameStat)) +
-      geom_line() +
-      geom_point() +
+    p <- ggplot(player_stats, aes(x = Season, y = PerGameStat)) +
+      geom_line(color = '#87CEEB') +
+      geom_point(aes(text = paste("Season:", Season, "<br>", stat_name, ":", round(PerGameStat, 2))), color = 'blue') +  # Add hover text
       labs(title = paste(input$playerName, ":", stat_name, "Over Time"),
            x = "Season",
            y = stat_name) +
       theme_minimal()
+    
+    # Convert ggplot to plotly object
+    ggplotly(p, tooltip = "text") # Specify to use the hover text
   })
 }
 
