@@ -81,6 +81,7 @@ ui <- fluidPage(
              
              fluidRow(
                # user input to decide the player
+               column(4,
                textInput("firstPlayer",  
                          "Search First Player:", 
                          value = "LeBron James"), # default is LeBron James
@@ -92,7 +93,7 @@ ui <- fluidPage(
                
                # Dropdown menu to choose statistic
                selectInput("statistic", 
-                           "Choose Statistic:",
+                           "Choose First Statistic:",
                            choices = c("Points Per Game" = "PTS_per_game",
                                        "Assists Per Game" = "AST_per_game",
                                        "Rebounds Per Game" = "TRB_per_game",
@@ -100,9 +101,26 @@ ui <- fluidPage(
                                        "Blocks Per Game" = "BLK_per_game",
                                        "Turnovers Per Game" = "TOV_per_game"),
                            selected = "PTS_per_game"),  # Default is Points Per Game
-             ),
+               
+               selectInput("secondStatistic", 
+                           "Choose Second Statistic (Optional):",
+                           choices = c("Points Per Game" = "PTS_per_game",
+                                       "Assists Per Game" = "AST_per_game",
+                                       "Rebounds Per Game" = "TRB_per_game",
+                                       "Steals Per Game" = "STL_per_game",
+                                       "Blocks Per Game" = "BLK_per_game",
+                                       "Turnovers Per Game" = "TOV_per_game"),
+                           selected = "AST_per_game")  # Default is Assists per Game
+               )
 
-             plotlyOutput("timeSeriesPlot")  # Output for the graph
+             ), 
+
+             
+             # Row for the two plots
+             fluidRow(
+               column(6, plotlyOutput("timeSeriesPlot1")), # Output for the first statistic
+               column(6, plotlyOutput("timeSeriesPlot2"))  # Output for the second statistic
+             )
     )
   )
 )
@@ -139,7 +157,7 @@ server <- function(input, output) {
   })
   
   # Reactive function to gather per-game data for a given player across seasons
-  player_data <- function(player_name) {
+  player_data <- function(player_name, stat_num) {
     per_game_stats <- data.frame(Season = integer(), PerGameStat = numeric())
     
     for (season_file in season_files) {
@@ -152,13 +170,24 @@ server <- function(input, output) {
         next
       }
       
-      per_game_value <- switch(input$statistic,
-                               "PTS_per_game" = ifelse(player_data$G > 0, player_data$PTS / player_data$G, 0),
-                               "AST_per_game" = ifelse(player_data$G > 0, player_data$AST / player_data$G, 0),
-                               "TRB_per_game" = ifelse(player_data$G > 0, player_data$TRB / player_data$G, 0),
-                               "STL_per_game" = ifelse(player_data$G > 0, player_data$STL / player_data$G, 0),
-                               "BLK_per_game" = ifelse(player_data$G > 0, player_data$BLK / player_data$G, 0),
-                               "TOV_per_game" = ifelse(player_data$G > 0, player_data$TOV / player_data$G, 0))
+      if (stat_num == 1) {
+        per_game_value <- switch(input$statistic,
+                                 "PTS_per_game" = ifelse(player_data$G > 0, player_data$PTS / player_data$G, 0),
+                                 "AST_per_game" = ifelse(player_data$G > 0, player_data$AST / player_data$G, 0),
+                                 "TRB_per_game" = ifelse(player_data$G > 0, player_data$TRB / player_data$G, 0),
+                                 "STL_per_game" = ifelse(player_data$G > 0, player_data$STL / player_data$G, 0),
+                                 "BLK_per_game" = ifelse(player_data$G > 0, player_data$BLK / player_data$G, 0),
+                                 "TOV_per_game" = ifelse(player_data$G > 0, player_data$TOV / player_data$G, 0))
+      }
+      else if (stat_num == 2) {
+        per_game_value <- switch(input$secondStatistic,
+                                 "PTS_per_game" = ifelse(player_data$G > 0, player_data$PTS / player_data$G, 0),
+                                 "AST_per_game" = ifelse(player_data$G > 0, player_data$AST / player_data$G, 0),
+                                 "TRB_per_game" = ifelse(player_data$G > 0, player_data$TRB / player_data$G, 0),
+                                 "STL_per_game" = ifelse(player_data$G > 0, player_data$STL / player_data$G, 0),
+                                 "BLK_per_game" = ifelse(player_data$G > 0, player_data$BLK / player_data$G, 0),
+                                 "TOV_per_game" = ifelse(player_data$G > 0, player_data$TOV / player_data$G, 0))
+      }
       
       per_game_stats <- rbind(per_game_stats, data.frame(Season = as.integer(season_year), PerGameStat = per_game_value))
     }
@@ -235,15 +264,15 @@ server <- function(input, output) {
   })
   
   
-  # Render the time series plot
-  output$timeSeriesPlot <- renderPlotly({
+  # Render the first time series plot
+  output$timeSeriesPlot1 <- renderPlotly({
     # First player data
-    first_player_stats <- player_data(input$firstPlayer)
+    first_player_stats1 <- player_data(input$firstPlayer, 1)
     
     # Second player data (optional)
-    second_player_stats <- NULL
+    second_player_stats1 <- NULL
     if (input$secondPlayer != "") {
-      second_player_stats <- player_data(input$secondPlayer)
+      second_player_stats1 <- player_data(input$secondPlayer, 1)
     }
     
     # Get the corresponding readable statistic name
@@ -256,7 +285,7 @@ server <- function(input, output) {
                         "TOV_per_game" = "Turnovers Per Game")
     
     # Create the time series plot for the first player
-    p <- ggplot(first_player_stats, aes(x = Season, y = PerGameStat)) +
+    p <- ggplot(first_player_stats1, aes(x = Season, y = PerGameStat)) +
       geom_line(color = '#87CEEB') +
       geom_point(aes(text = paste("Player:", input$firstPlayer, "<br>", "Season:", Season, "<br>", stat_name, ":", round(PerGameStat, 2))), color = 'blue') +  # Add hover text
       labs(x = "Season",
@@ -264,10 +293,10 @@ server <- function(input, output) {
       theme_minimal()
     
     # Add second player to the plot if provided
-    if (!is.null(second_player_stats)) {
+    if (!is.null(second_player_stats1)) {
       p <- p + 
-        geom_line(data = second_player_stats, aes(x = Season, y = PerGameStat), color = 'orange') +
-        geom_point(data = second_player_stats, aes(text = paste("Player:", input$secondPlayer, "<br>", "Season:", Season, "<br>", stat_name, ":", round(PerGameStat, 2))), color = 'red')
+        geom_line(data = second_player_stats1, aes(x = Season, y = PerGameStat), color = 'orange') +
+        geom_point(data = second_player_stats1, aes(text = paste("Player:", input$secondPlayer, "<br>", "Season:", Season, "<br>", stat_name, ":", round(PerGameStat, 2))), color = 'red')
     }
     
     # Update the title based on whether there is a second player
@@ -282,6 +311,58 @@ server <- function(input, output) {
     # Convert ggplot to plotly object
     ggplotly(p, tooltip = "text") # Specify to use the hover text
   })
+  
+  
+  
+  # Render the second time series plot (optional)
+  output$timeSeriesPlot2 <- renderPlotly({
+    # First player data
+    first_player_stats2 <- player_data(input$firstPlayer, 2)
+    
+    # Second player data (optional)
+    second_player_stats2 <- NULL
+    if (input$secondPlayer != "") {
+      second_player_stats2 <- player_data(input$secondPlayer, 2)
+    }
+    
+    # Get the corresponding readable statistic name
+    stat_name2 <- switch(input$secondStatistic,
+                        "PTS_per_game" = "Points Per Game",
+                        "AST_per_game" = "Assists Per Game",
+                        "TRB_per_game" = "Rebounds Per Game",
+                        "STL_per_game" = "Steals Per Game",
+                        "BLK_per_game" = "Blocks Per Game",
+                        "TOV_per_game" = "Turnovers Per Game")
+    
+    # Create the time series plot for the first player
+    p <- ggplot(first_player_stats2, aes(x = Season, y = PerGameStat)) +
+      geom_line(color = '#87CEEB') +
+      geom_point(aes(text = paste("Player:", input$firstPlayer, "<br>", "Season:", Season, "<br>", stat_name2, ":", round(PerGameStat, 2))), color = 'blue') +  # Add hover text
+      labs(x = "Season",
+           y = stat_name2) +
+      theme_minimal()
+    
+    # Add second player to the plot if provided
+    if (!is.null(second_player_stats2)) {
+      p <- p + 
+        geom_line(data = second_player_stats2, aes(x = Season, y = PerGameStat), color = 'orange') +
+        geom_point(data = second_player_stats2, aes(text = paste("Player:", input$secondPlayer, "<br>", "Season:", Season, "<br>", stat_name2, ":", round(PerGameStat, 2))), color = 'red')
+    }
+    
+    # Update the title based on whether there is a second player
+    plot_title <- if (input$secondPlayer == "") {
+      paste(input$firstPlayer, ":", stat_name2, "Over Time")
+    } else {
+      paste(input$firstPlayer, "vs", input$secondPlayer, ":", stat_name2)
+    }
+    
+    p <- p + ggtitle(plot_title)
+    
+    # Convert ggplot to plotly object
+    ggplotly(p, tooltip = "text") # Specify to use the hover text
+  })
+  
+  
 }
 
 # Run the application
